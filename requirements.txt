@@ -1,0 +1,3 @@
+# Core dependencies for Home Assistant custom components
+homeassistant>=2024.1.0
+voluptuous>=0.13.0

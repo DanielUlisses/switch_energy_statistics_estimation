@@ -1,0 +1,107 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "custom_components/**"
+
+permissions:
+  contents: write
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      component_changed: ${{ steps.changes.outputs.component_changed }}
+      component_version: ${{ steps.changes.outputs.component_version }}
+      component_tag: ${{ steps.changes.outputs.component_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get latest tag
+        id: latest_tag
+        run: |
+          # Get latest version tag
+          LATEST_TAG=$(git tag -l "v*" | sort -V | tail -1 || echo "")
+          echo "LATEST_TAG=${LATEST_TAG}" >> $GITHUB_OUTPUT
+          echo "Latest tag: ${LATEST_TAG}"
+
+      - name: Detect changes
+        id: changes
+        run: |
+          # Get current version from manifest file
+          COMPONENT_VERSION=$(grep '"version"' custom_components/switch_energy_statistics_estimation/manifest.json | cut -d'"' -f4)
+          echo "component_version=${COMPONENT_VERSION}" >> $GITHUB_OUTPUT
+          echo "component_tag=v${COMPONENT_VERSION}" >> $GITHUB_OUTPUT
+
+          # Check if we have any previous tags to compare against
+          LATEST_TAG="${{ steps.latest_tag.outputs.LATEST_TAG }}"
+
+          # Initialize change flag
+          COMPONENT_CHANGED=false
+
+          if [ -z "$LATEST_TAG" ]; then
+            echo "No previous tag found - initial release"
+            COMPONENT_CHANGED=true
+          else
+            # Check if files changed since last tag
+            FILE_CHANGES=$(git diff --name-only ${LATEST_TAG} HEAD -- custom_components/switch_energy_statistics_estimation/ || echo "changes")
+
+            if [ -n "$FILE_CHANGES" ]; then
+              # Check if version changed
+              PREV_VERSION=$(git show ${LATEST_TAG}:custom_components/switch_energy_statistics_estimation/manifest.json | grep '"version"' | cut -d'"' -f4 || echo "0.0.0")
+
+              if [ "$PREV_VERSION" != "$COMPONENT_VERSION" ]; then
+                echo "Version changed: $PREV_VERSION -> $COMPONENT_VERSION"
+                COMPONENT_CHANGED=true
+              else
+                echo "Files changed but version unchanged ($COMPONENT_VERSION)"
+              fi
+            else
+              echo "No component changes detected"
+            fi
+          fi
+
+          echo "component_changed=${COMPONENT_CHANGED}" >> $GITHUB_OUTPUT
+          echo "Component changed: ${COMPONENT_CHANGED}"
+          echo "Component version: ${COMPONENT_VERSION}"
+
+  release:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.component_changed == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.detect-changes.outputs.component_tag }}
+          release_name: Switch Energy Statistics Estimation ${{ needs.detect-changes.outputs.component_version }}
+          body: |
+            ## Switch Energy Statistics Estimation v${{ needs.detect-changes.outputs.component_version }}
+            
+            ### What's Changed
+            - Check the commit history for detailed changes
+            - Updated to version ${{ needs.detect-changes.outputs.component_version }}
+            
+            ### Installation
+            - Install via HACS (recommended)
+            - Or download and copy to `custom_components/switch_energy_statistics_estimation/`
+            
+            ### Requirements
+            - Home Assistant Core 2024.1+
+            
+            **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ needs.detect-changes.outputs.component_tag }}
+          draft: false
+          prerelease: false

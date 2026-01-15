@@ -1,0 +1,62 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - "custom_components/**"
+      - ".github/workflows/**"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate manifest.json
+        run: |
+          echo "Validating component manifest..."
+          python -m json.tool custom_components/switch_energy_statistics_estimation/manifest.json > /dev/null
+          echo "✅ Manifest is valid JSON"
+
+      - name: Check version format
+        run: |
+          VERSION=$(grep '"version"' custom_components/switch_energy_statistics_estimation/manifest.json | cut -d'"' -f4)
+          if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "❌ Version format invalid: $VERSION (expected: X.Y.Z)"
+            exit 1
+          fi
+          echo "✅ Version format is valid: $VERSION"
+
+      - name: Check component structure
+        run: |
+          echo "Checking component file structure..."
+          
+          # Required files
+          REQUIRED_FILES=(
+            "custom_components/switch_energy_statistics_estimation/__init__.py"
+            "custom_components/switch_energy_statistics_estimation/manifest.json"
+            "custom_components/switch_energy_statistics_estimation/sensor.py"
+            "custom_components/switch_energy_statistics_estimation/config_flow.py"
+            "custom_components/switch_energy_statistics_estimation/const.py"
+          )
+          
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Required file missing: $file"
+              exit 1
+            else
+              echo "✅ Found: $file"
+            fi
+          done
+          
+          echo "✅ Component structure is valid"
+
+      - name: Validate Python syntax
+        run: |
+          echo "Validating Python syntax..."
+          python -m py_compile custom_components/switch_energy_statistics_estimation/*.py
+          echo "✅ Python syntax is valid"

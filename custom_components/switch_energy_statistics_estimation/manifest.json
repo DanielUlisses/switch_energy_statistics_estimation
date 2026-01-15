@@ -1,0 +1,15 @@
+{
+  "domain": "switch_energy_statistics",
+  "name": "Switch Energy Statistics Estimation",
+  "codeowners": [
+    "@danielulisses"
+  ],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/danielulisses/zigbee-devices/blob/main/custom_components/switch_energy_statistics_estimation/README.md",
+  "integration_type": "device",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/danielulisses/zigbee-devices/issues",
+  "requirements": [],
+  "version": "2.1.3"
+}

@@ -1,0 +1,76 @@
+reset_energy:
+  name: Reset Energy Data
+  description: Reset accumulated energy data for a sensor
+  fields:
+    entity_id:
+      name: Entity
+      description: The energy sensor entity to reset
+      required: true
+      selector:
+        entity:
+          domain: sensor
+          device_class: energy
+    period:
+      name: Period
+      description: The period type to reset
+      required: false
+      default: daily
+      selector:
+        select:
+          options:
+            - daily
+            - weekly
+            - monthly
+
+set_energy:
+  name: Set Energy Value
+  description: Set energy value for a specific date
+  fields:
+    entity_id:
+      name: Entity
+      description: The energy sensor entity to modify
+      required: true
+      selector:
+        entity:
+          domain: sensor
+          device_class: energy
+    energy:
+      name: Energy Value
+      description: Energy value in Wh
+      required: true
+      selector:
+        number:
+          min: 0
+          step: 0.1
+          unit_of_measurement: Wh
+    date:
+      name: Date
+      description: Date for the energy value (defaults to today)
+      required: false
+      selector:
+        date:
+
+export_data:
+  name: Export Historical Data
+  description: Export historical energy data
+  fields:
+    entity_id:
+      name: Entity
+      description: The energy sensor entity to export
+      required: true
+      selector:
+        entity:
+          domain: sensor
+          device_class: energy
+    start_date:
+      name: Start Date
+      description: Start date for export (optional)
+      required: false
+      selector:
+        date:
+    end_date:
+      name: End Date
+      description: End date for export (optional)
+      required: false
+      selector:
+        date:

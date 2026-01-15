@@ -1,0 +1,11 @@
+{
+  "name": "Switch Energy Statistics Estimation",
+  "content_in_root": false,
+  "filename": "switch_energy_statistics_estimation.zip",
+  "hide_default_branch": true,
+  "homeassistant": "2024.1.0",
+  "persistent_directory": false,
+  "render_readme": true,
+  "zip_release": true,
+  "release_filter": "switch-stats-v*"
+}
