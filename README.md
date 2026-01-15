@@ -72,7 +72,7 @@ This repository uses a comprehensive development workflow with automated formatt
 # One-command setup
 make setup
 
-# View all available commands  
+# View all available commands
 make help
 
 # Format and validate your code
@@ -93,17 +93,17 @@ make commit-check
 ## 💬 Support & Community
 
 ### 🐛 Issues & Bug Reports
-Found a bug? Have a feature request? 
+Found a bug? Have a feature request?
 [🔗 Open an Issue](https://github.com/danielulisses/switch-energy-statistics-estimation/issues/new)
 
-### 💡 Feature Requests  
+### 💡 Feature Requests
 We welcome suggestions for new features or improvements!
 [💭 Suggest a Feature](https://github.com/danielulisses/switch-energy-statistics-estimation/discussions)
 
 ### ⭐ Show Support
 If this integration is helpful, please:
 - ⭐ **Star this repository**
-- 🍴 **Share with the community** 
+- 🍴 **Share with the community**
 - 💝 **Contribute improvements**
 
 ## 📄 License

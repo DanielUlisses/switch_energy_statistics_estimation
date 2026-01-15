@@ -1,6 +1,7 @@
+---
 name: PR Validation
 
-on:
+'on':
   pull_request:
     branches:
       - main
@@ -19,12 +20,14 @@ jobs:
       - name: Validate manifest.json
         run: |
           echo "Validating component manifest..."
-          python -m json.tool custom_components/switch_energy_statistics_estimation/manifest.json > /dev/null
+          MANIFEST="custom_components/switch_energy_statistics_estimation/manifest.json"
+          python -m json.tool "$MANIFEST" > /dev/null
           echo "✅ Manifest is valid JSON"
 
       - name: Check version format
         run: |
-          VERSION=$(grep '"version"' custom_components/switch_energy_statistics_estimation/manifest.json | cut -d'"' -f4)
+          MANIFEST="custom_components/switch_energy_statistics_estimation/manifest.json"
+          VERSION=$(grep '"version"' "$MANIFEST" | cut -d'"' -f4)
           if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "❌ Version format invalid: $VERSION (expected: X.Y.Z)"
             exit 1
@@ -34,7 +37,7 @@ jobs:
       - name: Check component structure
         run: |
           echo "Checking component file structure..."
-          
+
           # Required files
           REQUIRED_FILES=(
             "custom_components/switch_energy_statistics_estimation/__init__.py"
@@ -43,7 +46,7 @@ jobs:
             "custom_components/switch_energy_statistics_estimation/config_flow.py"
             "custom_components/switch_energy_statistics_estimation/const.py"
           )
-          
+
           for file in "${REQUIRED_FILES[@]}"; do
             if [ ! -f "$file" ]; then
               echo "❌ Required file missing: $file"
@@ -52,11 +55,12 @@ jobs:
               echo "✅ Found: $file"
             fi
           done
-          
+
           echo "✅ Component structure is valid"
 
       - name: Validate Python syntax
         run: |
           echo "Validating Python syntax..."
-          python -m py_compile custom_components/switch_energy_statistics_estimation/*.py
+          COMPONENT_PATH="custom_components/switch_energy_statistics_estimation"
+          python -m py_compile "$COMPONENT_PATH"/*.py
           echo "✅ Python syntax is valid"
