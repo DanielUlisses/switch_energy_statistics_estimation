@@ -6,10 +6,10 @@
   ],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/danielulisses/zigbee-devices/blob/main/custom_components/switch_energy_statistics_estimation/README.md",
+  "documentation": "https://github.com/danielulisses/switch-energy-statistics-estimation",
   "integration_type": "device",
   "iot_class": "calculated",
-  "issue_tracker": "https://github.com/danielulisses/zigbee-devices/issues",
+  "issue_tracker": "https://github.com/danielulisses/switch-energy-statistics-estimation/issues",
   "requirements": [],
   "version": "2.1.3"
 }
