@@ -1,6 +1,7 @@
+---
 name: Release
 
-on:
+'on':
   push:
     branches:
       - main
@@ -36,7 +37,8 @@ jobs:
         id: changes
         run: |
           # Get current version from manifest file
-          COMPONENT_VERSION=$(grep '"version"' custom_components/switch_energy_statistics_estimation/manifest.json | cut -d'"' -f4)
+          MANIFEST_FILE="custom_components/switch_energy_statistics_estimation/manifest.json"
+          COMPONENT_VERSION=$(grep '"version"' "$MANIFEST_FILE" | cut -d'"' -f4)
           echo "component_version=${COMPONENT_VERSION}" >> $GITHUB_OUTPUT
           echo "component_tag=v${COMPONENT_VERSION}" >> $GITHUB_OUTPUT
 
@@ -51,11 +53,16 @@ jobs:
             COMPONENT_CHANGED=true
           else
             # Check if files changed since last tag
-            FILE_CHANGES=$(git diff --name-only ${LATEST_TAG} HEAD -- custom_components/switch_energy_statistics_estimation/ || echo "changes")
+            COMPONENT_PATH="custom_components/switch_energy_statistics_estimation/"
+            FILE_CHANGES=$(git diff --name-only ${LATEST_TAG} HEAD -- \
+              "$COMPONENT_PATH" || echo "changes")
 
             if [ -n "$FILE_CHANGES" ]; then
               # Check if version changed
-              PREV_VERSION=$(git show ${LATEST_TAG}:custom_components/switch_energy_statistics_estimation/manifest.json | grep '"version"' | cut -d'"' -f4 || echo "0.0.0")
+              MANIFEST_PATH="custom_components/switch_energy_statistics_estimation/"
+              MANIFEST_FILE="${MANIFEST_PATH}manifest.json"
+              PREV_VERSION=$(git show ${LATEST_TAG}:"$MANIFEST_FILE" | \
+                grep '"version"' | cut -d'"' -f4 || echo "0.0.0")
 
               if [ "$PREV_VERSION" != "$COMPONENT_VERSION" ]; then
                 echo "Version changed: $PREV_VERSION -> $COMPONENT_VERSION"
@@ -76,32 +83,39 @@ jobs:
     needs: detect-changes
     if: needs.detect-changes.outputs.component_changed == 'true'
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Create Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ needs.detect-changes.outputs.component_tag }}
-          release_name: Switch Energy Statistics Estimation ${{ needs.detect-changes.outputs.component_version }}
+          name: >
+            Switch Energy Statistics Estimation
+            ${{ needs.detect-changes.outputs.component_version }}
           body: |
-            ## Switch Energy Statistics Estimation v${{ needs.detect-changes.outputs.component_version }}
-            
+            ## Switch Energy Statistics Estimation
+            v${{ needs.detect-changes.outputs.component_version }}
+
             ### What's Changed
             - Check the commit history for detailed changes
-            - Updated to version ${{ needs.detect-changes.outputs.component_version }}
-            
+            - Updated to version
+              ${{ needs.detect-changes.outputs.component_version }}
+
             ### Installation
             - Install via HACS (recommended)
-            - Or download and copy to `custom_components/switch_energy_statistics_estimation/`
-            
+            - Or download and copy to
+              `custom_components/switch_energy_statistics_estimation/`
+
             ### Requirements
             - Home Assistant Core 2024.1+
-            
-            **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ needs.detect-changes.outputs.component_tag }}
+
+            **Full Changelog**:
+            https://github.com/${{ github.repository }}/compare/\
+            ${{ needs.detect-changes.outputs.component_tag }}
           draft: false
           prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
