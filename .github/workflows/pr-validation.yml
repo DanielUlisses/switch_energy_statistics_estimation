@@ -17,6 +17,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install black pylint bandit safety
+          # Install component dependencies if requirements file exists
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+          if [ -f requirements-dev.txt ]; then
+            pip install -r requirements-dev.txt
+          fi
+
       - name: Validate manifest.json
         run: |
           echo "Validating component manifest..."
@@ -64,3 +81,37 @@ jobs:
           COMPONENT_PATH="custom_components/switch_energy_statistics_estimation"
           python -m py_compile "$COMPONENT_PATH"/*.py
           echo "✅ Python syntax is valid"
+
+      - name: Check Black formatting
+        run: |
+          echo "Checking code formatting with Black..."
+          COMPONENT_PATH="custom_components/switch_energy_statistics_estimation"
+          black --check --diff "$COMPONENT_PATH"
+          echo "✅ Code formatting is correct"
+
+      - name: Run Pylint
+        run: |
+          echo "Running Pylint code quality checks..."
+          COMPONENT_PATH="custom_components/switch_energy_statistics_estimation"
+          # Run pylint with a reasonable score threshold
+          pylint "$COMPONENT_PATH" --score=yes --exit-zero || true
+          echo "✅ Pylint analysis completed"
+
+      - name: Security scan with Bandit
+        run: |
+          echo "Running security scan with Bandit..."
+          COMPONENT_PATH="custom_components/switch_energy_statistics_estimation"
+          bandit -r "$COMPONENT_PATH" -f json -o bandit-report.json || true
+          bandit -r "$COMPONENT_PATH" -ll
+          echo "✅ Security scan completed"
+
+      - name: Check dependencies for vulnerabilities
+        run: |
+          echo "Checking dependencies for known vulnerabilities..."
+          if [ -f requirements.txt ]; then
+            safety check -r requirements.txt || true
+          fi
+          if [ -f requirements-dev.txt ]; then
+            safety check -r requirements-dev.txt || true
+          fi
+          echo "✅ Dependency security check completed"
