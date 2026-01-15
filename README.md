@@ -1,8 +1,8 @@
 # Switch Energy Statistics Estimation
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
-[![GitHub release](https://img.shields.io/github/release/danielulisses/switch-energy-statistics-estimation.svg?style=for-the-badge)](https://github.com/danielulisses/switch-energy-statistics-estimation/releases)
-[![GitHub stars](https://img.shields.io/github/stars/danielulisses/switch-energy-statistics-estimation.svg?style=for-the-badge)](https://github.com/danielulisses/switch-energy-statistics-estimation/stargazers)
+[![GitHub release](https://img.shields.io/github/release/DanielUlisses/switch_energy_statistics_estimation.svg?style=for-the-badge)](https://github.com/DanielUlisses/switch_energy_statistics_estimation/releases)
+[![GitHub stars](https://img.shields.io/github/stars/DanielUlisses/switch_energy_statistics_estimation.svg?style=for-the-badge)](https://github.com/DanielUlisses/switch_energy_statistics_estimation/stargazers)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg?style=for-the-badge)](https://github.com/psf/black)
 
 A Home Assistant custom integration that provides energy consumption tracking and statistics for multi-gang switches (1-8 gangs).
@@ -28,7 +28,7 @@ A Home Assistant custom integration that provides energy consumption tracking an
 2. **Add Custom Repository**:
    - Go to HACS → Integrations
    - Click the three dots menu (⋮) → Custom repositories
-   - Add repository URL: `https://github.com/danielulisses/switch-energy-statistics-estimation`
+   - Add repository URL: `https://github.com/DanielUlisses/switch_energy_statistics_estimation`
    - Category: Integration
    - Click Add
 
@@ -47,7 +47,7 @@ A Home Assistant custom integration that provides energy consumption tracking an
 
 ```bash
 # Download the latest release
-wget https://github.com/danielulisses/switch-energy-statistics-estimation/releases/download/v1.x.x/switch_energy_statistics_estimation.zip
+wget https://github.com/DanielUlisses/switch_energy_statistics_estimation/releases/download/v1.x.x/switch_energy_statistics_estimation.zip
 
 # Extract to custom_components directory
 unzip switch_energy_statistics_estimation.zip -d /config/custom_components/
@@ -94,11 +94,11 @@ make commit-check
 
 ### 🐛 Issues & Bug Reports
 Found a bug? Have a feature request?
-[🔗 Open an Issue](https://github.com/danielulisses/switch-energy-statistics-estimation/issues/new)
+[🔗 Open an Issue](https://github.com/DanielUlisses/switch_energy_statistics_estimation/issues/new)
 
 ### 💡 Feature Requests
 We welcome suggestions for new features or improvements!
-[💭 Suggest a Feature](https://github.com/danielulisses/switch-energy-statistics-estimation/discussions)
+[💭 Suggest a Feature](https://github.com/DanielUlisses/switch_energy_statistics_estimation/discussions)
 
 ### ⭐ Show Support
 If this integration is helpful, please:
