@@ -15,7 +15,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup(
     hass: HomeAssistant, config: ConfigType
 ) -> bool:  # pylint: disable=unused-argument
-    """Set up the Switch Energy Statistics component."""
+    """Set up the Switch Energy Statistics components."""
     # Set up services
     await async_setup_services(hass)
     return True
