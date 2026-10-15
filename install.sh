@@ -2,6 +2,7 @@
 
 # Switch Energy Statistics HACS Setup Script
 # This script helps set up the repository for HACS installation
+# new implementation reviewed by claude
 
 set -e
 
