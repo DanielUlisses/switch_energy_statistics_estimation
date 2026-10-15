@@ -2,7 +2,8 @@
   "domain": "switch_energy_statistics",
   "name": "Switch Energy Statistics Estimation",
   "codeowners": [
-    "@danielulisses"
+    "@danielulisses",
+    "@ulissestech"
   ],
   "config_flow": true,
   "dependencies": [],
