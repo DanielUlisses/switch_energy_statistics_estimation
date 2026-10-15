@@ -6,7 +6,12 @@ import logging
 
 import voluptuous as vol
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntryState
-from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
+from homeassistant.core import (
+    HomeAssistant,
+    ServiceCall,
+    ServiceResponse,
+    SupportsResponse,
+)
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
@@ -76,10 +81,16 @@ ATTACH_SCHEMA = vol.Schema(
 )
 
 
-def _resolve(hass: HomeAssistant, entity_id: str) -> tuple[SwitchEnergyTracker, Counter]:
+def _resolve(
+    hass: HomeAssistant, entity_id: str
+) -> tuple[SwitchEnergyTracker, Counter]:
     """Return the tracker and counter behind one of this integration's energy sensors."""
     reg_entry = er.async_get(hass).async_get(entity_id)
-    if reg_entry is None or reg_entry.platform != DOMAIN or not reg_entry.config_entry_id:
+    if (
+        reg_entry is None
+        or reg_entry.platform != DOMAIN
+        or not reg_entry.config_entry_id
+    ):
         raise ServiceValidationError(f"{entity_id} is not a {NAME} sensor")
     entry = hass.config_entries.async_get_entry(reg_entry.config_entry_id)
     if entry is None or entry.state is not ConfigEntryState.LOADED:
@@ -107,7 +118,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         tracker, counter = _resolve(hass, call.data["entity_id"])
         key = tracker.async_set(counter, call.data["energy"], call.data.get("date"))
         _LOGGER.info(
-            "Set %s %s to %s Wh", call.data["entity_id"], key or "lifetime", call.data["energy"]
+            "Set %s %s to %s Wh",
+            call.data["entity_id"],
+            key or "lifetime",
+            call.data["energy"],
         )
 
     async def export_data_service(call: ServiceCall) -> ServiceResponse:
@@ -158,7 +172,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         return {"entry_id": entry.entry_id, "title": entry.title}
 
     async_register_admin_service(
-        hass, DOMAIN, SERVICE_RESET_ENERGY, reset_energy_service, schema=RESET_ENERGY_SCHEMA
+        hass,
+        DOMAIN,
+        SERVICE_RESET_ENERGY,
+        reset_energy_service,
+        schema=RESET_ENERGY_SCHEMA,
     )
     async_register_admin_service(
         hass, DOMAIN, SERVICE_SET_ENERGY, set_energy_service, schema=SET_ENERGY_SCHEMA

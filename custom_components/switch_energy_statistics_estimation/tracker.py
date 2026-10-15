@@ -92,7 +92,9 @@ def _per_gang(raw: Any, gangs: list[str], default: float, cast: type) -> dict[st
     return {gang: values.get(gang, cast(default)) for gang in gangs}
 
 
-def normalize_entry_data(data: Mapping[str, Any], title: str | None = None) -> dict[str, Any]:
+def normalize_entry_data(
+    data: Mapping[str, Any], title: str | None = None
+) -> dict[str, Any]:
     """Return entry data in the current (1.2) shape.
 
     Accepts every shape older versions wrote: ``gang_entities`` with int or str
@@ -472,14 +474,18 @@ class SwitchEnergyTracker:
             is_on
             and self.brightness_scaling
             and gang.entity_id.startswith("light.")
-            and isinstance(brightness := state.attributes.get("brightness"), (int, float))
+            and isinstance(
+                brightness := state.attributes.get("brightness"), (int, float)
+            )
         ):
             factor = max(0.0, min(255.0, float(brightness))) / 255.0
         if is_on != gang.is_on or gang.last_changed is None:
             gang.last_changed = state.last_changed if state is not None else now
         gang.is_on = is_on
         gang.brightness_factor = factor
-        gang.power = gang.nominal_power * (1.0 if factor is None else factor) if is_on else 0.0
+        gang.power = (
+            gang.nominal_power * (1.0 if factor is None else factor) if is_on else 0.0
+        )
 
     def _accrue(self, now: datetime) -> bool:
         """Add the energy used since the last accrual. Return True if any."""
@@ -573,7 +579,9 @@ class SwitchEnergyTracker:
         self._notify()
 
     @callback
-    def async_set(self, counter: Counter, energy: float, day: date | None) -> str | None:
+    def async_set(
+        self, counter: Counter, energy: float, day: date | None
+    ) -> str | None:
         """Set the energy of the period containing ``day`` (default: current)."""
         self._accrue(dt_util.utcnow())
         if counter.period_key is None:

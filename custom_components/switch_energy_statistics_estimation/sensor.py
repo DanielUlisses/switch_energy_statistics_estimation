@@ -11,7 +11,12 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN, UnitOfEnergy, UnitOfPower
+from homeassistant.const import (
+    STATE_UNAVAILABLE,
+    STATE_UNKNOWN,
+    UnitOfEnergy,
+    UnitOfPower,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
@@ -47,7 +52,9 @@ async def async_setup_entry(
     expected = tracker.expected_unique_ids()
     for reg_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
         if reg_entry.domain == "sensor" and reg_entry.unique_id not in expected:
-            _LOGGER.info("Removing %s: its gang is no longer configured", reg_entry.entity_id)
+            _LOGGER.info(
+                "Removing %s: its gang is no longer configured", reg_entry.entity_id
+            )
             registry.async_remove(reg_entry.entity_id)
 
     entities: list[SensorEntity] = []
@@ -103,7 +110,9 @@ class _SwitchEnergyBaseSensor(SensorEntity):
     async def async_added_to_hass(self) -> None:
         """Follow tracker updates."""
         await super().async_added_to_hass()
-        self.async_on_remove(self._tracker.async_add_listener(self.async_write_ha_state))
+        self.async_on_remove(
+            self._tracker.async_add_listener(self.async_write_ha_state)
+        )
 
     def _gang_attributes(self) -> dict[str, Any]:
         tracker = self._tracker

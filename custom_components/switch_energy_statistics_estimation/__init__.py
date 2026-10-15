@@ -7,13 +7,20 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
-from .const import CONF_GANG_ENTITIES, CONFIG_MINOR_VERSION, CONFIG_VERSION, DOMAIN, PLATFORMS
+from .const import (
+    CONF_GANG_ENTITIES,
+    CONFIG_MINOR_VERSION,
+    CONFIG_VERSION,
+    DOMAIN,
+    PLATFORMS,
+)
 from .services import async_setup_services
 from .tracker import SwitchEnergyTracker, entry_store, normalize_entry_data
 
 _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
 
 async def async_setup(
     hass: HomeAssistant, config: ConfigType
@@ -43,15 +50,23 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.error("%s has no switch entities to migrate", entry.title)
             return False
         hass.config_entries.async_update_entry(
-            entry, data=new_data, version=CONFIG_VERSION, minor_version=CONFIG_MINOR_VERSION
+            entry,
+            data=new_data,
+            version=CONFIG_VERSION,
+            minor_version=CONFIG_MINOR_VERSION,
         )
         _LOGGER.info(
-            "Migrated %s to version %s.%s", entry.title, CONFIG_VERSION, CONFIG_MINOR_VERSION
+            "Migrated %s to version %s.%s",
+            entry.title,
+            CONFIG_VERSION,
+            CONFIG_MINOR_VERSION,
         )
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: SwitchEnergyConfigEntry) -> bool:
+async def async_setup_entry(
+    hass: HomeAssistant, entry: SwitchEnergyConfigEntry
+) -> bool:
     """Set up Switch Energy Statistics from a config entry."""
     tracker = SwitchEnergyTracker(hass, entry)
     await tracker.async_load()
@@ -62,7 +77,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: SwitchEnergyConfigEntry)
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: SwitchEnergyConfigEntry) -> bool:
+async def async_unload_entry(
+    hass: HomeAssistant, entry: SwitchEnergyConfigEntry
+) -> bool:
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:

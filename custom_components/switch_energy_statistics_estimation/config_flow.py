@@ -66,7 +66,9 @@ def _load_schema(
     schema: dict[Any, Any] = {}
     for gang in gangs:
         schema[
-            vol.Required(f"gang_{gang}_power", default=powers.get(gang, DEFAULT_GANG_POWER))
+            vol.Required(
+                f"gang_{gang}_power", default=powers.get(gang, DEFAULT_GANG_POWER)
+            )
         ] = POWER_SELECTOR
         schema[
             vol.Required(
@@ -226,7 +228,9 @@ class SwitchEnergyStatisticsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN)
                     if entity not in by_entity:
                         gangs[next(free)] = entity
                 self._gangs = dict(sorted(gangs.items(), key=lambda item: int(item[0])))
-                self._name = (user_input.get(CONF_NAME) or "").strip() or current[CONF_NAME]
+                self._name = (user_input.get(CONF_NAME) or "").strip() or current[
+                    CONF_NAME
+                ]
                 self._powers = {
                     g: current[CONF_GANG_POWER].get(g, DEFAULT_GANG_POWER)
                     for g in self._gangs
@@ -244,9 +248,12 @@ class SwitchEnergyStatisticsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN)
             step_id="reconfigure",
             data_schema=vol.Schema(
                 {
-                    vol.Optional(CONF_NAME, default=current[CONF_NAME]): selector.TextSelector(),
+                    vol.Optional(
+                        CONF_NAME, default=current[CONF_NAME]
+                    ): selector.TextSelector(),
                     vol.Required(
-                        CONF_ENTITIES, default=list(current[CONF_GANG_ENTITIES].values())
+                        CONF_ENTITIES,
+                        default=list(current[CONF_GANG_ENTITIES].values()),
                     ): ENTITIES_SELECTOR,
                 }
             ),
