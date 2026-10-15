@@ -99,6 +99,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.detect-changes.outputs.release_sha }}
+
+      # hacs.json sets zip_release, so HACS downloads this asset from the
+      # release; the zip holds the integration's files at its root
+      - name: Build HACS zip
+        run: |
+          cd custom_components/switch_energy_statistics_estimation
+          zip -r "$GITHUB_WORKSPACE/switch_energy_statistics_estimation.zip" . \
+            -x '__pycache__/*' '*/__pycache__/*' '*.pyc'
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
@@ -127,5 +140,6 @@ jobs:
             **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ needs.detect-changes.outputs.previous_tag }}...${{ needs.detect-changes.outputs.component_tag }}
           draft: false
           prerelease: false
+          files: switch_energy_statistics_estimation.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
