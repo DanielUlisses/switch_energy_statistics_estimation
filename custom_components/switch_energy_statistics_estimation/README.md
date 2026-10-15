@@ -1,244 +1,175 @@
 # Switch Energy Statistics Estimation
 
-A custom Home Assistant integration that provides energy consumption tracking and statistics for multi-gang switches (1-gang to 8-gang).
+A custom Home Assistant integration that estimates the energy used by loads behind on/off entities (switches, lights, fans, input_booleans) from the watts of the load each one drives. One entry covers 1 to 8 entities ("gangs"), and each gang can drive several identical loads (for example 3 lamps × 5 W).
+
+Upstream repository: <https://github.com/DanielUlisses/switch_energy_statistics_estimation>. The repository name ends in `_estimation`, but the integration domain and folder are `switch_energy_statistics`.
 
 ## Features
 
-- **Multi-gang Support**: Track energy consumption for switches with 1 to 8 gangs
-- **Flexible Power Configuration**: Set different power consumption values for each gang
-- **Historical Data**: Track energy consumption over daily, weekly, and monthly periods
-- **Home Assistant Energy Dashboard**: Compatible with HA Energy Dashboard
-- **Real-time Monitoring**: Tracks switch state changes to calculate accurate energy consumption
-- **Data Persistence**: Historical data is stored and survives Home Assistant restarts
-- **Service Management**: Built-in services for data management and export
+- **1 to 8 gangs per entry**, each with its own watts per load and number of loads
+- **Brightness scaling** (optional): a light's power follows its brightness
+- **Lifetime energy sensor** for the Home Assistant Energy dashboard
+- **Daily, weekly (ISO week) and monthly sensors** that reset at local midnight, Monday and the 1st
+- **Live values**: energy accrues every 60 seconds while a load is on
+- **Persistent history** (about 400 days, 104 weeks, 36 months) that survives restarts
+- **One device per entry**, grouping its sensors
+- **Services** to attach loads, export history, and correct or reset values
 
 ## Installation
 
-### HACS Installation (Recommended)
+### HACS (recommended)
 
-1. **Install HACS** if you haven't already: [HACS Installation Guide](https://hacs.xyz/docs/setup/download)
+1. In HACS → Integrations → ⋮ → **Custom repositories**, add `https://github.com/DanielUlisses/switch_energy_statistics_estimation` as an **Integration**.
+2. Install **Switch Energy Statistics Estimation** and restart Home Assistant.
 
-2. **Add Custom Repository**:
-   - Go to HACS → Integrations
-   - Click the three dots menu (⋮) → Custom repositories
-   - Add repository URL: `https://github.com/danielulisses/zigbee-devices`
-   - Category: Integration
-   - Click Add
+### Manual
 
-3. **Install the Integration**:
-   - Search for "Switch Energy Statistics Estimation" in HACS
-   - Click Install
-   - Restart Home Assistant
+Copy this folder to `custom_components/switch_energy_statistics/` in your Home Assistant config (or run `./install.sh manual <config dir>`), then restart Home Assistant:
 
-4. **Add the Integration**:
-   - Go to Settings → Devices & Services → Integrations
-   - Click "Add Integration"
-   - Search for "Switch Energy Statistics Estimation"
-   - Follow the configuration wizard
-
-### Manual Installation
-
-1. Copy the `switch_energy_statistics_estimation` folder to your Home Assistant `custom_components` directory:
-   ```
-   custom_components/
-   └── switch_energy_statistics_estimation/
-       ├── __init__.py
-       ├── manifest.json
-       ├── config_flow.py
-       ├── const.py
-       ├── sensor.py
-       ├── services.py
-       ├── services.yaml
-       ├── hacs.json
-       └── translations/
-           └── en.json
-   ```
-
-2. Restart Home Assistant
-
-3. Go to Settings → Devices & Services → Integrations → Add Integration
-
-4. Search for "Switch Energy Statistics Estimation" and add it
+```
+custom_components/
+└── switch_energy_statistics/
+    ├── __init__.py
+    ├── config_flow.py
+    ├── const.py
+    ├── manifest.json
+    ├── sensor.py
+    ├── services.py
+    ├── services.yaml
+    ├── tracker.py
+    └── translations/
+        ├── en.json
+        └── pt-BR.json
+```
 
 ## Configuration
 
-### Setup Process
+### Adding an entry (UI)
 
-1. **Choose Switch Entity**: Select the switch entity you want to monitor
-2. **Set Gang Count**: Specify how many gangs your switch has (1-8)
-3. **Configure Power Consumption**: Set the power consumption in watts for each gang
+Settings → Devices & Services → **Add Integration** → *Switch Energy Statistics Estimation*:
 
-### Configuration Options
+1. **Entities**: pick the switch / light / fan / input_boolean entities, one per gang, in gang order. **Name** is optional and defaults to the first entity's name.
+2. **Loads per gang**: for each gang, the **watts per load** (0.1 to 5000 W) and the **number of loads** (1 to 100). Turn on **Scale light power by brightness** for dimmable lights.
 
-- **Switch Entity**: The Home Assistant entity ID of your switch
-- **Gang Count**: Number of gangs (1-8)
-- **Gang Power Settings**: Power consumption in watts for each gang
+An entity can only be attached to one entry.
 
-## Entities Created
+### Changing an entry
 
-For each gang, the integration creates the following entities:
+- **Configure** (options): change watts, number of loads and brightness scaling. The entry reloads by itself.
+- **Reconfigure**: rename the entry or add, replace or remove gangs. Kept entities keep their gang number and history. New entities get a new gang number, and the sensors of removed gangs are deleted.
 
-### Energy Sensors
-- `sensor.{name}_gang_{n}_energy_daily` - Daily energy consumption
-- `sensor.{name}_gang_{n}_energy_weekly` - Weekly energy consumption
-- `sensor.{name}_gang_{n}_energy_monthly` - Monthly energy consumption
+### Attaching loads from a script (`attach` service)
 
-### Power Sensor
-- `sensor.{name}_gang_{n}_power` - Current power consumption (0W when off, configured watts when on)
+```yaml
+action: switch_energy_statistics.attach
+data:
+  entity_id: light.sala_spots
+  power: 5          # W per load
+  quantity: 3       # 3 spots on this switch
+  name: Sala Spots  # optional, defaults to the entity name
+  brightness_scaling: false
+response_variable: attached  # optional: {"entry_id": ..., "title": ...}
+```
 
-### Entity Attributes
+Several entities in `entity_id` become the gangs of one entry, all with the same watts and load count. The call fails if an entity is already attached.
 
-Each energy sensor includes these attributes:
-- `switch_entity`: The monitored switch entity
-- `gang_number`: Gang number (1-8)
-- `gang_power`: Configured power consumption in watts
-- `period`: Time period (daily/weekly/monthly)
-- `is_on`: Current switch state
-- `last_changed`: Last state change timestamp
-- `historical_data`: Recent historical consumption data
+## Entities created
 
-## How It Works
+For each gang (`<name>` is the entry name, `<load>` the entity's name):
 
-1. **State Monitoring**: The integration monitors your switch entity for state changes (on/off)
-2. **Energy Calculation**: When the switch is on, it calculates energy consumption based on:
-   - Time the switch was on
-   - Configured power consumption for that gang
-3. **Period Tracking**: Energy is accumulated and reset based on the tracking period:
-   - **Daily**: Resets at midnight
-   - **Weekly**: Resets on Monday
-   - **Monthly**: Resets on the 1st of each month
-4. **Data Storage**: Historical data is stored persistently and survives restarts
+| Entity | Device class / state class | Resets |
+| --- | --- | --- |
+| `sensor.<name>_<load>_energy` | energy, total_increasing (Wh, shown in kWh) | never (lifetime) |
+| `sensor.<name>_<load>_energy_daily` | energy, total_increasing (Wh) | local midnight |
+| `sensor.<name>_<load>_energy_weekly` | energy, total_increasing (Wh) | Monday 00:00 (ISO week) |
+| `sensor.<name>_<load>_energy_monthly` | energy, total_increasing (Wh) | the 1st, 00:00 |
+| `sensor.<name>_<load>_power` | power, measurement (W) | — |
+
+Entries with more than one gang also get `sensor.<name>_total_energy`, `..._total_energy_daily`, `..._total_energy_weekly`, `..._total_energy_monthly` and `..._total_power`.
+
+Example (entry "Garagem Energy Statistics", entity "Garagem Luz"): `sensor.garagem_energy_statistics_garagem_luz_energy_daily`.
+
+### Attributes
+
+- Gang sensors: `switch_entity`, `gang_number`, `gang_power` (watts × loads), `load_power`, `load_count`, `is_on`, `brightness_factor` (when scaling applies)
+- Energy sensors also: `period`, `last_changed`, `historical_data` (last 7 periods); daily sensors also `yesterday`
+- Total sensors: `switch_entities`, `gang_powers`, `gang_states`, `total_gangs`, `gangs_on`
+
+`historical_data` and `last_changed` are not written to the recorder database.
+
+## Energy dashboard
+
+Add **one** energy sensor per load under *Individual devices*: the lifetime sensor `sensor.<name>_<load>_energy`, or `sensor.<name>_total_energy` for a multi-gang entry. Don't add the daily, weekly and monthly sensors as well, or the same energy is counted several times.
+
+## Today's consumption ("Consumo de hoje")
+
+Use the daily sensor (`..._energy_daily`, or `..._total_energy_daily` for a multi-gang entry). It resets at local midnight and updates every minute while a load is on. Its `yesterday` attribute holds the previous day.
+
+## How it works
+
+1. The integration follows the state of each entity. `on` counts as on, and anything else (`off`, `unavailable`, ...) as off.
+2. Power = watts per load × number of loads, × brightness / 255 for a scaled light.
+3. Energy (Wh) = power × hours on. It accrues on every state change and every 60 s while on.
+4. At local midnight (and on start-up, if Home Assistant was off over midnight) each daily, weekly and monthly counter closes its period into history and starts again at 0.
+5. Counters and history are saved to `.storage/switch_energy_statistics_storage_<entry_id>` within 30 s of a change and on shutdown.
 
 ## Services
 
-The integration provides several services for data management:
+All services are admin-only.
 
 ### switch_energy_statistics.reset_energy
-Reset accumulated energy data for a sensor.
+
+Reset the current period of an energy sensor to 0. With `period`, reset that period of the same load instead.
 
 ```yaml
-service: switch_energy_statistics.reset_energy
+action: switch_energy_statistics.reset_energy
 data:
-  entity_id: sensor.switch_gang_1_energy_daily
-  period: daily  # optional: daily, weekly, monthly
+  entity_id: sensor.garagem_energy_statistics_garagem_luz_energy_daily
+  period: weekly  # optional: daily, weekly, monthly, lifetime
 ```
 
 ### switch_energy_statistics.set_energy
-Set energy value for a specific date.
+
+Set the energy (Wh) of the period containing `date` (the day, ISO week or month, matching the sensor). Without `date` it sets the current period. On the lifetime sensor it sets the total.
 
 ```yaml
-service: switch_energy_statistics.set_energy
+action: switch_energy_statistics.set_energy
 data:
-  entity_id: sensor.switch_gang_1_energy_daily
-  energy: 150.5  # Wh
-  date: 2024-01-15  # optional, defaults to today
+  entity_id: sensor.garagem_energy_statistics_garagem_luz_energy_daily
+  energy: 150.5
+  date: "2026-10-14"
 ```
 
 ### switch_energy_statistics.export_data
-Export historical energy data via event.
+
+Return a sensor's history and fire it as a `switch_energy_statistics_data_export` event. `start_date` and `end_date` filter by the first day of each period.
 
 ```yaml
-service: switch_energy_statistics.export_data
+action: switch_energy_statistics.export_data
 data:
-  entity_id: sensor.switch_gang_1_energy_daily
-  start_date: 2024-01-01  # optional
-  end_date: 2024-01-31    # optional
+  entity_id: sensor.garagem_energy_statistics_garagem_luz_energy_weekly
+  start_date: "2026-09-01"
+response_variable: export
 ```
 
-## Home Assistant Energy Dashboard Integration
+### switch_energy_statistics.attach
 
-The energy sensors are fully compatible with Home Assistant's Energy Dashboard:
+See [Attaching loads from a script](#attaching-loads-from-a-script-attach-service).
 
-1. Go to Configuration > Energy
-2. Add your energy sensors under "Individual Devices"
-3. The sensors will appear in your energy usage statistics
+## Upgrading from 2.1.x
 
-## Example Configurations
+Existing entries migrate automatically (config entry 1.1 → 1.2, storage 1.1 → 1.2). Unique IDs and entity IDs don't change.
 
-### Single Gang Switch (10W LED Light)
-```yaml
-# Configuration
-Switch Entity: switch.living_room_light
-Gang Count: 1
-Gang 1 Power: 10.0W
-```
-
-### 4-Gang Switch (Mixed Loads)
-```yaml
-# Configuration
-Switch Entity: switch.kitchen_4gang
-Gang Count: 4
-Gang 1 Power: 15.0W  # LED strips
-Gang 2 Power: 8.0W   # Under cabinet lights
-Gang 3 Power: 100.0W # Exhaust fan
-Gang 4 Power: 5.0W   # Night light
-```
-
-### 8-Gang Switch (Commercial Application)
-```yaml
-# Configuration
-Switch Entity: switch.office_8gang
-Gang Count: 8
-Gang 1-4 Power: 12.0W each  # LED panels
-Gang 5-6 Power: 25.0W each  # Fluorescent lights
-Gang 7 Power: 150.0W        # Air circulation fan
-Gang 8 Power: 75.0W         # Emergency lighting
-```
-
-## Automation Examples
-
-### Daily Energy Report
-```yaml
-automation:
-  - alias: "Daily Energy Report"
-    trigger:
-      platform: time
-      at: "23:59:00"
-    action:
-      service: notify.mobile_app
-      data:
-        title: "Daily Energy Usage"
-        message: >
-          Kitchen Lights: {{ states('sensor.kitchen_gang_1_energy_daily') }}Wh
-          Living Room: {{ states('sensor.living_room_gang_1_energy_daily') }}Wh
-```
-
-### High Energy Usage Alert
-```yaml
-automation:
-  - alias: "High Energy Usage Alert"
-    trigger:
-      platform: numeric_state
-      entity_id: sensor.kitchen_gang_1_energy_daily
-      above: 500  # 500Wh
-    action:
-      service: notify.mobile_app
-      data:
-        title: "High Energy Usage"
-        message: "Kitchen lights have used {{ trigger.to_state.state }}Wh today"
-```
+- Gang keys are normalised, a missing load count defaults to 1, and the legacy single `switch_entity` shape becomes gang 1.
+- Weekly history keys are relabelled from the old `%Y-W%U` format to ISO weeks (`2026-W42`). Values are kept, and keys that can't be parsed are left as they are.
+- On the first start, each daily/weekly/monthly counter continues from the sensor's restored state if that state is from the current period. Otherwise it starts at 0. The restored state replaces the pre-upgrade history value for the current period; closed periods are untouched.
+- The lifetime sensors are new and start at 0.
 
 ## Troubleshooting
 
-### Common Issues
-
-1. **Sensor not updating**:
-   - Check that the switch entity exists and is updating
-   - Verify the switch entity is in the correct format (switch.xxx or light.xxx)
-
-2. **Energy values seem incorrect**:
-   - Verify the power consumption settings for each gang
-   - Check if the switch state changes are being detected
-   - Use the reset service to clear incorrect data
-
-3. **Historical data missing**:
-   - Data is stored in Home Assistant's storage
-   - Check Home Assistant logs for storage errors
-   - Historical data accumulates over time
-
-### Debug Logging
-
-Enable debug logging by adding this to your `configuration.yaml`:
+- **Values look wrong**: check the watts and load counts (Configure). Fix a period with `set_energy` or `reset_energy`.
+- **Sensor stays at 0**: the entity has to report `on`. Check its state in Developer tools.
+- **Debug logging**:
 
 ```yaml
 logger:
@@ -246,23 +177,61 @@ logger:
     custom_components.switch_energy_statistics: debug
 ```
 
-## Supported Switch Types
-
-- **Physical Switches**: Any switch entity that reports on/off states
-- **Smart Switches**: Zigbee, Z-Wave, WiFi switches
-- **Light Entities**: Can also monitor light entities as switches
-- **Multi-gang Devices**: Sonoff 4CH, Shelly devices, etc.
-
 ## Limitations
 
-- Maximum 8 gangs per switch
-- Energy calculation is based on estimated power consumption, not measured
-- Requires the switch entity to properly report state changes
-- Historical data storage uses Home Assistant's storage system
+- At most 8 gangs per entry; the watts are estimates, not measurements.
+- Energy used while Home Assistant is stopped is not counted.
 
-## Contributing
+## Changelog
 
-This is a custom component. If you find bugs or want to suggest improvements, please create an issue or pull request in the repository.
+### 2.2.0
+
+This release implements the 33 reviewed improvements:
+
+**Bugs**
+1. Daily/weekly/monthly totals now reset at each period boundary. Before, they could keep growing across days, and a reset saved the old total under the new period's key.
+2. Periods follow local time (not UTC) and reset on a schedule at midnight / Monday / the 1st, also when the load is idle, and on start-up.
+3. Energy accrues every 60 s while a load is on, not only when it switches off.
+4. One shared store per entry, saved with a 30 s delayed write and on shutdown. Before, it was only saved on unload, and the sensors overwrote each other's keys.
+5. Gang keys are normalised. Before, opening the options form showed 10 W and pressing Submit saved it.
+6. Options changes apply right away (the entry reloads).
+7. The services work. Before, all three did nothing.
+8. The legacy `switch_entity` entry shape is migrated.
+9. Total sensors are built from the same gangs as the gang sensors, so watts can't be matched to the wrong gang.
+
+**Energy dashboard**
+10. New lifetime energy sensors (per gang and total) that never reset.
+11. `historical_data` and `last_changed` are kept out of the recorder.
+12. Existing sensors stay in Wh; the new lifetime sensors are suggested in kWh.
+13. The docs recommend a single energy sensor per load.
+
+**Multi-load**
+14. Number of loads per gang (power = watts × loads).
+15. Watts limit raised to 5000 W.
+16. Optional brightness scaling for lights.
+17. `fan` and `input_boolean` entities are supported.
+
+**Attach UX**
+18. Entity selector instead of a scraped dropdown.
+19. Two-step setup: name + entities, then watts and loads.
+20. English and Brazilian Portuguese translations.
+21. An entity can only be attached once.
+22. Options flow uses the current `self.config_entry` pattern.
+23. New `attach` service.
+24. Reconfigure step (add, replace or remove gangs).
+25. One device per entry.
+
+**Daily energy**
+26. The daily sensor is a correct "today" value.
+27. `yesterday` attribute on daily sensors.
+
+**Housekeeping**
+28. Runtime data in `entry.runtime_data`.
+29. History trimmed to about 400 days / 104 weeks / 36 months.
+30. Manifest and HACS metadata point at the upstream repository; version 2.2.0.
+31. README, HACS guide, examples and install script updated.
+32. Cleanups: no `@callback` on coroutines, config-entry-only `CONFIG_SCHEMA`, unused constants removed.
+33. ISO week labels, with a storage migration that relabels existing weekly history.
 
 ## License
 

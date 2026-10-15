@@ -7,329 +7,321 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.core import callback
 from homeassistant.helpers import selector
-from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry
 
 from .const import (
+    CONF_BRIGHTNESS_SCALING,
+    CONF_ENTITIES,
     CONF_GANG_COUNT,
+    CONF_GANG_ENTITIES,
     CONF_GANG_POWER,
+    CONF_GANG_QUANTITY,
     CONF_NAME,
+    CONFIG_MINOR_VERSION,
+    CONFIG_VERSION,
     DEFAULT_GANG_POWER,
-    DEFAULT_NAME,
+    DEFAULT_GANG_QUANTITY,
     DOMAIN,
     MAX_GANG_COUNT,
-    MIN_GANG_COUNT,
+    MAX_GANG_POWER,
+    MAX_GANG_QUANTITY,
+    MIN_GANG_POWER,
+    SUPPORTED_DOMAINS,
 )
+from .tracker import friendly_name, normalize_entry_data
 
 _LOGGER = logging.getLogger(__name__)
 
+POWER_SELECTOR = selector.NumberSelector(
+    selector.NumberSelectorConfig(
+        min=MIN_GANG_POWER,
+        max=MAX_GANG_POWER,
+        step=0.1,
+        unit_of_measurement="W",
+        mode=selector.NumberSelectorMode.BOX,
+    )
+)
+QUANTITY_SELECTOR = selector.NumberSelector(
+    selector.NumberSelectorConfig(
+        min=1, max=MAX_GANG_QUANTITY, step=1, mode=selector.NumberSelectorMode.BOX
+    )
+)
+ENTITIES_SELECTOR = selector.EntitySelector(
+    selector.EntitySelectorConfig(
+        filter=selector.EntityFilterSelectorConfig(domain=SUPPORTED_DOMAINS),
+        multiple=True,
+        reorder=True,
+    )
+)
 
-async def get_switch_entities(hass: HomeAssistant) -> list[str]:
-    """Get all available switch entities."""
-    switch_entities = []
 
-    # Get entities from states (includes all active entities)
-    for state in hass.states.async_all():
-        entity_id = state.entity_id
-        if entity_id.startswith(("switch.", "light.")):
-            # Exclude certain entity types that aren't real switches
-            if not any(
-                exclude in entity_id
-                for exclude in [
-                    "_linkquality",
-                    "_update_available",
-                    "_update_state",
-                    "_battery",
-                    "_signal_strength",
-                    "_voltage",
-                    "_power",
-                    "_energy",
-                    "_current",
-                    "_temperature",
-                    "_humidity",
-                ]
-            ):
-                switch_entities.append(entity_id)
-
-    # Also get from entity registry for disabled entities
-    entity_registry = async_get_entity_registry(hass)
-    for entity in entity_registry.entities.values():
-        if (
-            entity.domain in ("switch", "light")
-            and entity.entity_id not in switch_entities
-            and not any(
-                exclude in entity.entity_id
-                for exclude in [
-                    "_linkquality",
-                    "_update_available",
-                    "_update_state",
-                    "_battery",
-                    "_signal_strength",
-                    "_voltage",
-                    "_power",
-                    "_energy",
-                    "_current",
-                    "_temperature",
-                    "_humidity",
-                ]
+def _load_schema(
+    gangs: dict[str, str],
+    powers: dict[str, float],
+    quantities: dict[str, int],
+    brightness_scaling: bool,
+) -> vol.Schema:
+    """Return the watts / load count form for the given gangs."""
+    schema: dict[Any, Any] = {}
+    for gang in gangs:
+        schema[
+            vol.Required(
+                f"gang_{gang}_power", default=powers.get(gang, DEFAULT_GANG_POWER)
             )
-        ):
-            switch_entities.append(entity.entity_id)
+        ] = POWER_SELECTOR
+        schema[
+            vol.Required(
+                f"gang_{gang}_quantity",
+                default=quantities.get(gang, DEFAULT_GANG_QUANTITY),
+            )
+        ] = QUANTITY_SELECTOR
+    schema[vol.Required(CONF_BRIGHTNESS_SCALING, default=brightness_scaling)] = (
+        selector.BooleanSelector()
+    )
+    return vol.Schema(schema)
 
-    return sorted(switch_entities)
+
+def _read_loads(
+    gangs: dict[str, str], user_input: dict[str, Any]
+) -> tuple[dict[str, float], dict[str, int]]:
+    """Read watts and load counts from the load form."""
+    powers = {
+        gang: float(user_input.get(f"gang_{gang}_power", DEFAULT_GANG_POWER))
+        for gang in gangs
+    }
+    quantities = {
+        gang: int(user_input.get(f"gang_{gang}_quantity", DEFAULT_GANG_QUANTITY))
+        for gang in gangs
+    }
+    return powers, quantities
 
 
 class SwitchEnergyStatisticsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Switch Energy Statistics."""
 
-    VERSION = 1
-    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
+    VERSION = CONFIG_VERSION
+    MINOR_VERSION = CONFIG_MINOR_VERSION
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the config flow."""
-        self._gang_count = None
-        self._name = None
-        self._gang_entities = {}
-        self._gang_powers = {}
+        self._name: str = ""
+        self._gangs: dict[str, str] = {}
+        self._powers: dict[str, float] = {}
+        self._quantities: dict[str, int] = {}
+        self._brightness_scaling = False
+
+    # -- helpers -------------------------------------------------------------
+
+    def _validate_entities(
+        self, entities: list[str], exclude_entry_id: str | None = None
+    ) -> str | None:
+        """Return an error key, or None if the selection is valid."""
+        if not entities:
+            return "no_entities"
+        if len(entities) > MAX_GANG_COUNT:
+            return "too_many_entities"
+        if len(set(entities)) != len(entities):
+            return "duplicate_entity"
+        if any(entity.split(".")[0] not in SUPPORTED_DOMAINS for entity in entities):
+            return "invalid_switch_entity"
+        for entry in self._async_current_entries(include_ignore=False):
+            if entry.entry_id == exclude_entry_id:
+                continue
+            attached = normalize_entry_data(entry.data, entry.title)[CONF_GANG_ENTITIES]
+            if set(entities) & set(attached.values()):
+                return "entity_already_configured"
+        return None
+
+    def _entry_data(self) -> dict[str, Any]:
+        return {
+            CONF_NAME: self._name,
+            CONF_GANG_COUNT: len(self._gangs),
+            CONF_GANG_ENTITIES: self._gangs,
+            CONF_GANG_POWER: self._powers,
+            CONF_GANG_QUANTITY: self._quantities,
+            CONF_BRIGHTNESS_SCALING: self._brightness_scaling,
+        }
+
+    def _gangs_description(self) -> str:
+        return "\n".join(
+            f"Gang {gang}: {friendly_name(self.hass, entity_id)} ({entity_id})"
+            for gang, entity_id in self._gangs.items()
+        )
+
+    # -- steps ---------------------------------------------------------------
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Handle the initial step."""
-        errors = {}
-
+    ) -> config_entries.ConfigFlowResult:
+        """Pick the name and the switched entities (one per gang, in order)."""
+        errors: dict[str, str] = {}
         if user_input is not None:
-            gang_count = int(user_input[CONF_GANG_COUNT])
-            name = user_input[CONF_NAME]
-
-            # Store data for next step
-            self._gang_count = gang_count
-            self._name = name
-
-            # Move to gang entity selection step
-            return await self.async_step_gang_entities()
-
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_GANG_COUNT, default=1): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=MIN_GANG_COUNT,
-                        max=MAX_GANG_COUNT,
-                        step=1,
-                        mode=selector.NumberSelectorMode.BOX,
-                    )
-                ),
-                vol.Required(CONF_NAME, default=DEFAULT_NAME): str,
-            }
-        )
-
-        return self.async_show_form(
-            step_id="user", data_schema=data_schema, errors=errors
-        )
-
-    async def async_step_gang_entities(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Handle gang entity selection."""
-        errors = {}
-
-        if user_input is not None:
-            # Validate all selected entities exist
-            available_entities = await get_switch_entities(self.hass)
-            current_states = [
-                state.entity_id
-                for state in self.hass.states.async_all()
-                if state.entity_id.startswith(("switch.", "light."))
-            ]
-            all_entities = list(set(available_entities + current_states))
-
-            gang_entities = {}
-            for gang in range(1, self._gang_count + 1):
-                entity_key = f"gang_{gang}_entity"
-                selected_entity = user_input.get(entity_key)
-
-                if not selected_entity:
-                    errors[entity_key] = "required"
-                elif selected_entity not in all_entities:
-                    errors[entity_key] = "invalid_switch_entity"
-                else:
-                    gang_entities[gang] = selected_entity
-
-            if not errors:
-                # Store gang entities for next step
-                self._gang_entities = gang_entities
-                # Move to power configuration step
+            entities = list(user_input.get(CONF_ENTITIES, []))
+            if error := self._validate_entities(entities):
+                errors[CONF_ENTITIES] = error
+            else:
+                self._gangs = {str(i): entity for i, entity in enumerate(entities, 1)}
+                self._name = (user_input.get(CONF_NAME) or "").strip() or friendly_name(
+                    self.hass, entities[0]
+                )
                 return await self.async_step_gang_config()
 
-        # Get available switch entities
-        switch_entities = await get_switch_entities(self.hass)
-
-        if not switch_entities:
-            return self.async_abort(reason="no_switch_entities")
-
-        # Create schema for gang entity selection
-        gang_schema = {}
-        for gang in range(1, self._gang_count + 1):
-            entity_key = f"gang_{gang}_entity"
-            gang_schema[vol.Required(entity_key)] = selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=switch_entities,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            )
-
-        data_schema = vol.Schema(gang_schema)
-
         return self.async_show_form(
-            step_id="gang_entities",
-            data_schema=data_schema,
+            step_id="user",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(CONF_NAME): selector.TextSelector(),
+                    vol.Required(CONF_ENTITIES): ENTITIES_SELECTOR,
+                }
+            ),
             errors=errors,
-            description_placeholders={
-                "gang_count": str(self._gang_count),
-            },
         )
 
     async def async_step_gang_config(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Handle gang power configuration."""
-        errors = {}
-
+    ) -> config_entries.ConfigFlowResult:
+        """Set watts per load and number of loads for each gang."""
         if user_input is not None:
-            # Store gang power configurations
-            self._gang_powers = {}
-            for gang in range(1, self._gang_count + 1):
-                power_key = f"gang_{gang}_power"
-                self._gang_powers[gang] = user_input.get(power_key, DEFAULT_GANG_POWER)
-
-            # Create the entry
-            return self.async_create_entry(
-                title=self._name,
-                data={
-                    CONF_GANG_COUNT: self._gang_count,
-                    CONF_NAME: self._name,
-                    CONF_GANG_POWER: self._gang_powers,
-                    "gang_entities": self._gang_entities,
-                    # Store individual gang entities
-                },
-            )
-
-        # Create schema for gang power configuration
-        gang_schema = {}
-        for gang in range(1, self._gang_count + 1):
-            power_key = f"gang_{gang}_power"
-            gang_schema[vol.Required(power_key, default=DEFAULT_GANG_POWER)] = (
-                selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=0.1,
-                        max=1000.0,
-                        step=0.1,
-                        unit_of_measurement="W",
-                        mode=selector.NumberSelectorMode.BOX,
-                    )
+            self._powers, self._quantities = _read_loads(self._gangs, user_input)
+            self._brightness_scaling = bool(user_input.get(CONF_BRIGHTNESS_SCALING))
+            if self.source == config_entries.SOURCE_RECONFIGURE:
+                return self.async_update_reload_and_abort(
+                    self._get_reconfigure_entry(),
+                    title=self._name,
+                    data=self._entry_data(),
                 )
-            )
-
-        data_schema = vol.Schema(gang_schema)
+            return self.async_create_entry(title=self._name, data=self._entry_data())
 
         return self.async_show_form(
             step_id="gang_config",
-            data_schema=data_schema,
-            errors=errors,
-            description_placeholders={
-                "gang_count": str(self._gang_count),
-            },
+            data_schema=_load_schema(
+                self._gangs, self._powers, self._quantities, self._brightness_scaling
+            ),
+            description_placeholders={"gangs": self._gangs_description()},
         )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Change the name or add, replace or remove gangs."""
+        entry = self._get_reconfigure_entry()
+        current = normalize_entry_data(entry.data, entry.title)
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            entities = list(user_input.get(CONF_ENTITIES, []))
+            if error := self._validate_entities(entities, entry.entry_id):
+                errors[CONF_ENTITIES] = error
+            else:
+                # Kept entities keep their gang number (and so their history);
+                # new ones take a number no current gang uses, so they never
+                # inherit a removed gang's watts or history.
+                by_entity = {e: g for g, e in current[CONF_GANG_ENTITIES].items()}
+                gangs = {by_entity[e]: e for e in entities if e in by_entity}
+                free = (
+                    str(n)
+                    for n in range(1, MAX_GANG_COUNT * 2 + 1)
+                    if str(n) not in current[CONF_GANG_ENTITIES]
+                )
+                for entity in entities:
+                    if entity not in by_entity:
+                        gangs[next(free)] = entity
+                self._gangs = dict(sorted(gangs.items(), key=lambda item: int(item[0])))
+                self._name = (user_input.get(CONF_NAME) or "").strip() or current[
+                    CONF_NAME
+                ]
+                self._powers = {
+                    g: current[CONF_GANG_POWER].get(g, DEFAULT_GANG_POWER)
+                    for g in self._gangs
+                    if g in current[CONF_GANG_ENTITIES]
+                }
+                self._quantities = {
+                    g: current[CONF_GANG_QUANTITY].get(g, DEFAULT_GANG_QUANTITY)
+                    for g in self._gangs
+                    if g in current[CONF_GANG_ENTITIES]
+                }
+                self._brightness_scaling = current[CONF_BRIGHTNESS_SCALING]
+                return await self.async_step_gang_config()
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_NAME, default=current[CONF_NAME]
+                    ): selector.TextSelector(),
+                    vol.Required(
+                        CONF_ENTITIES,
+                        default=list(current[CONF_GANG_ENTITIES].values()),
+                    ): ENTITIES_SELECTOR,
+                }
+            ),
+            errors=errors,
+        )
+
+    async def async_step_import(
+        self, import_data: dict[str, Any]
+    ) -> config_entries.ConfigFlowResult:
+        """Create an entry from the attach service."""
+        entities = list(import_data[CONF_ENTITIES])
+        if error := self._validate_entities(entities):
+            return self.async_abort(reason=error)
+        self._gangs = {str(i): entity for i, entity in enumerate(entities, 1)}
+        self._name = import_data.get(CONF_NAME) or friendly_name(self.hass, entities[0])
+        self._powers = dict.fromkeys(self._gangs, float(import_data[CONF_GANG_POWER]))
+        self._quantities = dict.fromkeys(
+            self._gangs, int(import_data.get(CONF_GANG_QUANTITY, DEFAULT_GANG_QUANTITY))
+        )
+        self._brightness_scaling = bool(import_data.get(CONF_BRIGHTNESS_SCALING, False))
+        return self.async_create_entry(title=self._name, data=self._entry_data())
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> SwitchEnergyStatisticsOptionsFlow:
         """Create the options flow."""
-        return SwitchEnergyStatisticsOptionsFlow(config_entry)
+        return SwitchEnergyStatisticsOptionsFlow()
 
 
 class SwitchEnergyStatisticsOptionsFlow(config_entries.OptionsFlow):
-    """Handle options flow for Switch Energy Statistics."""
-
-    def __init__(self, config_entry: config_entries.ConfigEntry):
-        """Initialize options flow."""
-        self._config_entry = config_entry
+    """Change watts, load counts and brightness scaling."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> config_entries.ConfigFlowResult:
         """Manage the options."""
+        entry = self.config_entry
+        current = normalize_entry_data(entry.data, entry.title)
+        gangs = current[CONF_GANG_ENTITIES]
+
         if user_input is not None:
-            # Update gang power values
-            updated_gang_powers = {}
-            gang_count = int(self._config_entry.data[CONF_GANG_COUNT])
-
-            for gang in range(1, gang_count + 1):
-                power_key = f"gang_{gang}_power"
-                if power_key in user_input:
-                    updated_gang_powers[gang] = user_input[power_key]
-
-            # Update the config entry data
-            new_data = dict(self._config_entry.data)
-            new_data[CONF_GANG_POWER] = updated_gang_powers
-
-            self.hass.config_entries.async_update_entry(
-                self._config_entry, data=new_data
-            )
-
-            return self.async_create_entry(title="", data={})
-
-        gang_count = int(self._config_entry.data[CONF_GANG_COUNT])
-        current_gang_powers = self._config_entry.data.get(CONF_GANG_POWER, {})
-        gang_entities = self._config_entry.data.get("gang_entities", {})
-
-        # Create schema for gang power configuration with entity names
-        gang_schema = {}
-        for gang in range(1, gang_count + 1):
-            power_key = f"gang_{gang}_power"
-            current_power = current_gang_powers.get(gang, DEFAULT_GANG_POWER)
-
-            gang_schema[vol.Required(power_key, default=current_power)] = (
-                selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=0.1,
-                        max=1000.0,
-                        step=0.1,
-                        unit_of_measurement="W",
-                        mode=selector.NumberSelectorMode.BOX,
-                    )
-                )
-            )
+            powers, quantities = _read_loads(gangs, user_input)
+            new_data = {
+                **current,
+                CONF_GANG_POWER: powers,
+                CONF_GANG_QUANTITY: quantities,
+                CONF_BRIGHTNESS_SCALING: bool(user_input.get(CONF_BRIGHTNESS_SCALING)),
+            }
+            # The settings live in entry.data (read by the sensors), so reload
+            # explicitly: OptionsFlowWithReload only reloads on options changes.
+            if self.hass.config_entries.async_update_entry(entry, data=new_data):
+                self.hass.config_entries.async_schedule_reload(entry.entry_id)
+            return self.async_create_entry(data={})
 
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema(gang_schema),
+            data_schema=_load_schema(
+                gangs,
+                current[CONF_GANG_POWER],
+                current[CONF_GANG_QUANTITY],
+                current[CONF_BRIGHTNESS_SCALING],
+            ),
             description_placeholders={
-                "gang_entities": ", ".join(
-                    f"Gang {gang}: {self._get_entity_friendly_name(entity_id)}"
-                    for gang, entity_id in gang_entities.items()
-                ),
+                "gangs": "\n".join(
+                    f"Gang {gang}: {friendly_name(self.hass, entity_id)} ({entity_id})"
+                    for gang, entity_id in gangs.items()
+                )
             },
         )
-
-    def _get_entity_friendly_name(self, entity_id: str) -> str:
-        """Get friendly name for an entity."""
-        if not entity_id or entity_id.startswith("gang_"):
-            return entity_id
-
-        # Try to get from entity registry first
-        entity_registry = async_get_entity_registry(self.hass)
-        if entity_entry := entity_registry.async_get(entity_id):
-            if entity_entry.name:
-                return entity_entry.name
-
-        # Fall back to state friendly name
-        if state := self.hass.states.get(entity_id):
-            return state.attributes.get(
-                "friendly_name", entity_id.split(".")[-1].replace("_", " ").title()
-            )
-
-        # Final fallback
-        return entity_id.split(".")[-1].replace("_", " ").title()

@@ -1,69 +1,64 @@
 # Example Configurations for Switch Energy Statistics
 
+Each entry lists its entities (one per gang, in order). For each gang you set the **watts per load** and the **number of loads**.
+
 ## Basic Single Gang Switch
-For a simple single gang switch controlling LED lights:
+A switch controlling one LED ceiling light:
 
 ```yaml
 Name: Living Room Lights
-Switch Entity: switch.living_room_main
-Gang Count: 1
-Gang 1 Power: 12.0W
+Entities: switch.living_room_main
+Gang 1: 12.0 W × 1
+```
+
+## One Switch, Several Identical Lamps
+A switch driving 3 spots of 5 W each (estimated at 15 W when on):
+
+```yaml
+Name: Sala Spots
+Entities: light.sala_spots
+Gang 1: 5.0 W × 3
+```
+
+The same entry from a script or automation:
+
+```yaml
+action: switch_energy_statistics.attach
+data:
+  entity_id: light.sala_spots
+  power: 5
+  quantity: 3
+```
+
+## Dimmable Light
+A 9 W bulb on a dimmer, with power following the brightness (50 % brightness → about 4.5 W):
+
+```yaml
+Name: Quarto Teto
+Entities: light.quarto_teto
+Gang 1: 9.0 W × 1
+Scale light power by brightness: on
 ```
 
 ## Dual Gang Kitchen Switch
-For a 2-gang switch in kitchen:
+For a 2-gang switch in a kitchen:
 
 ```yaml
 Name: Kitchen Lights
-Switch Entity: switch.kitchen_2gang
-Gang Count: 2
-Gang 1 Power: 15.0W  # Main ceiling lights
-Gang 2 Power: 8.0W   # Under cabinet LED strips
+Entities: switch.kitchen_l1, switch.kitchen_l2
+Gang 1: 15.0 W × 1   # Main ceiling light
+Gang 2: 4.0 W × 2    # Two under-cabinet LED strips
 ```
 
 ## 4-Gang Bathroom Switch
-For a 4-gang bathroom switch:
 
 ```yaml
 Name: Master Bathroom
-Switch Entity: switch.bathroom_4gang
-Gang Count: 4
-Gang 1 Power: 10.0W   # Vanity lights
-Gang 2 Power: 8.0W    # Mirror lights
-Gang 3 Power: 120.0W  # Exhaust fan
-Gang 4 Power: 25.0W   # Heat lamp
-```
-
-## 6-Gang Office Setup
-For a 6-gang office switch:
-
-```yaml
-Name: Home Office
-Switch Entity: switch.office_6gang
-Gang Count: 6
-Gang 1 Power: 18.0W   # Desk lamp
-Gang 2 Power: 22.0W   # Ceiling fan light
-Gang 3 Power: 95.0W   # Ceiling fan motor
-Gang 4 Power: 12.0W   # Accent lighting
-Gang 5 Power: 5.0W    # Night light
-Gang 6 Power: 45.0W   # Air purifier
-```
-
-## 8-Gang Commercial/Large Room
-For an 8-gang switch in a large room or commercial space:
-
-```yaml
-Name: Conference Room
-Switch Entity: switch.conference_8gang
-Gang Count: 8
-Gang 1 Power: 24.0W   # Main lights zone 1
-Gang 2 Power: 24.0W   # Main lights zone 2
-Gang 3 Power: 24.0W   # Main lights zone 3
-Gang 4 Power: 24.0W   # Main lights zone 4
-Gang 5 Power: 15.0W   # Accent lighting
-Gang 6 Power: 180.0W  # Projector
-Gang 7 Power: 85.0W   # Air circulation fan
-Gang 8 Power: 12.0W   # Emergency lighting
+Entities: switch.bath_l1, switch.bath_l2, fan.bath_exhaust, switch.bath_l4
+Gang 1: 10.0 W × 1    # Vanity light
+Gang 2: 8.0 W × 1     # Mirror light
+Gang 3: 120.0 W × 1   # Exhaust fan
+Gang 4: 250.0 W × 1   # Heat lamp
 ```
 
 ## Typical Power Consumption Values
@@ -93,60 +88,72 @@ Gang 8 Power: 12.0W   # Emergency lighting
 
 ## Energy Dashboard Configuration
 
-After setting up your switch energy statistics, add them to the Home Assistant Energy Dashboard:
+1. Go to **Settings** → **Dashboards** → **Energy**
+2. Under "Individual devices", click **Add device**
+3. Select the **lifetime** sensor of each load: `sensor.<name>_<load>_energy`. For a multi-gang entry, either `sensor.<name>_total_energy` or the per-gang lifetime sensors, not both.
 
-1. Go to **Configuration** → **Energy**
-2. Under "Individual Devices", click **Add Device**
-3. Select your energy sensors:
-   - For daily tracking: `sensor.{name}_gang_{n}_energy_daily`
-   - For longer term: `sensor.{name}_gang_{n}_energy_monthly`
+Don't add the daily, weekly or monthly sensors to the dashboard: the dashboard already splits energy by day, and adding them counts the same energy again.
 
-## Automation Examples
+## Automation and Template Examples
 
-### Track Total Daily Usage
+### Today's consumption ("Consumo de hoje")
+The daily sensor already holds today's value and resets at local midnight:
+
+```yaml
+type: entity
+entity: sensor.garagem_energy_statistics_total_energy_daily
+name: Consumo de hoje
+```
+
+Yesterday's value is the `yesterday` attribute:
+
 ```yaml
 template:
   - sensor:
-      - name: "Kitchen Total Daily Energy"
+      - name: "Garagem Consumo de Ontem"
         unit_of_measurement: "Wh"
         device_class: energy
-        state: >
-          {{ (states('sensor.kitchen_gang_1_energy_daily') | float) +
-             (states('sensor.kitchen_gang_2_energy_daily') | float) +
-             (states('sensor.kitchen_gang_3_energy_daily') | float) +
-             (states('sensor.kitchen_gang_4_energy_daily') | float) }}
+        state: "{{ state_attr('sensor.garagem_energy_statistics_total_energy_daily', 'yesterday') | float(0) }}"
+```
+
+### Daily Energy Report
+
+```yaml
+automation:
+  - alias: "Daily Energy Report"
+    triggers:
+      - trigger: time
+        at: "23:59:00"
+    actions:
+      - action: notify.mobile_app
+        data:
+          title: "Daily Energy Usage"
+          message: >
+            Kitchen: {{ states('sensor.kitchen_lights_total_energy_daily') }} Wh
+            Living Room: {{ states('sensor.living_room_lights_living_room_main_energy_daily') }} Wh
 ```
 
 ### Cost Calculation
+
 ```yaml
 template:
   - sensor:
       - name: "Living Room Daily Energy Cost"
-        unit_of_measurement: "$"
+        unit_of_measurement: "R$"
+        # Assumes R$ 0.90 per kWh
         state: >
-          {{ (states('sensor.living_room_gang_1_energy_daily') | float * 0.12 / 1000) | round(2) }}
-        # Assumes $0.12 per kWh
+          {{ (states('sensor.living_room_lights_living_room_main_energy_daily') | float(0) * 0.90 / 1000) | round(2) }}
 ```
 
-### Weekly Energy Reset Notification
+### Export last month's daily history
+
 ```yaml
-automation:
-  - alias: "Weekly Energy Reset"
-    trigger:
-      platform: time
-      at: "00:00:00"
-    condition:
-      condition: time
-      weekday:
-        - mon
-    action:
-      service: notify.mobile_app
-      data:
-        title: "Weekly Energy Reset"
-        message: >
-          Last week's total:
-          Living Room: {{ states('sensor.living_room_gang_1_energy_weekly') }}Wh
-          Kitchen: {{ states('sensor.kitchen_gang_1_energy_weekly') }}Wh
+action: switch_energy_statistics.export_data
+data:
+  entity_id: sensor.kitchen_lights_total_energy_daily
+  start_date: "2026-09-01"
+  end_date: "2026-09-30"
+response_variable: export
 ```
 
 ## Tips for Accurate Power Values

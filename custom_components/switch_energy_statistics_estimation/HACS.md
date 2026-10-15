@@ -5,25 +5,6 @@
 1. **HACS Installed**: Ensure you have HACS installed in your Home Assistant instance
    - If not installed, follow: https://hacs.xyz/docs/setup/download
 
-## First Time Setup (Repository Owner)
-
-If you're setting up this repository for the first time:
-
-1. **Push to GitHub** (if not already done):
-   ```bash
-   git add .
-   git commit -m "Add Switch Energy Statistics integration"
-   git push origin main
-   ```
-
-2. **Create the first release**:
-   ```bash
-   git tag v1.0.0
-   git push origin v1.0.0
-   ```
-
-3. **Wait for GitHub Actions**: The release workflow will automatically create a ZIP file and GitHub release
-
 ## Installation Steps
 
 ### Step 1: Add Custom Repository
@@ -33,7 +14,7 @@ If you're setting up this repository for the first time:
 3. Click the **three dots menu (⋮)** in the top right
 4. Select **Custom repositories**
 5. Add the following details:
-   - **Repository**: `https://github.com/danielulisses/zigbee-devices`
+   - **Repository**: `https://github.com/DanielUlisses/switch_energy_statistics_estimation`
    - **Category**: `Integration`
    - Click **Add**
 
@@ -50,9 +31,10 @@ If you're setting up this repository for the first time:
 2. Click **Add Integration**
 3. Search for **"Switch Energy Statistics Estimation"**
 4. Follow the configuration wizard:
-   - Select your switch entity
-   - Set number of gangs (1-8)
-   - Configure power consumption for each gang
+   - Pick the switch / light / fan / input_boolean entities, one per gang (1-8)
+   - Set the watts per load and the number of loads for each gang
+
+Or attach loads from a script with the `switch_energy_statistics.attach` service (see `README.md`).
 
 ## Benefits of HACS Installation
 
@@ -64,12 +46,7 @@ If you're setting up this repository for the first time:
 ## Troubleshooting HACS Installation
 
 ### Repository Not Found or No Releases
-- **Create a release**: The repository needs at least one GitHub release
-  ```bash
-  git tag v1.0.0
-  git push origin v1.0.0
-  ```
-- **Wait for Actions**: GitHub Actions will create the release (may take 1-2 minutes)
+- **Check releases**: HACS installs from the GitHub releases of the repository (`hacs.json` sets `zip_release` with `release_filter: switch-stats-v*`)
 - **Check repository is public**: Ensure the GitHub repository is publicly accessible
 - **Verify URL**: Double-check the repository URL is correct
 
@@ -87,36 +64,34 @@ If you're setting up this repository for the first time:
 
 If you previously installed manually:
 
-1. **Remove manual installation**: Delete the `custom_components/switch_energy_statistics_estimation` folder
-2. **Restart Home Assistant**
-3. **Install via HACS** following the steps above
-4. **Re-add integration** through the UI
-5. **Your configuration will be preserved**
+1. **Remove manual installation**: Delete the `custom_components/switch_energy_statistics` folder
+2. **Install via HACS** following the steps above (the folder name stays `switch_energy_statistics`)
+3. **Restart Home Assistant**
 
-## Repository Structure
+Existing entries, entity IDs and history are kept: they live in Home Assistant's `.storage`, not in the integration folder.
+
+## Integration Structure
 
 ```
-zigbee-devices/
-├── README.md (main repository readme)
-├── custom_components/
-│   └── switch_energy_statistics_estimation/
-│       ├── manifest.json
-│       ├── hacs.json
-│       ├── __init__.py
-│       ├── config_flow.py
-│       ├── sensor.py
-│       ├── const.py
-│       ├── services.py
-│       ├── services.yaml
-│       ├── translations/
-│       │   └── en.json
-│       ├── README.md (integration documentation)
-│       └── examples.md
-└── relay-2-types/ (other components)
+custom_components/
+└── switch_energy_statistics/
+    ├── manifest.json
+    ├── hacs.json
+    ├── __init__.py
+    ├── config_flow.py
+    ├── const.py
+    ├── sensor.py
+    ├── services.py
+    ├── services.yaml
+    ├── tracker.py
+    ├── translations/
+    │   ├── en.json
+    │   └── pt-BR.json
+    ├── README.md (integration documentation)
+    └── examples.md
 ```
 
 ## Support
 
-- **Issues**: Report bugs at `https://github.com/danielulisses/zigbee-devices/issues`
-- **Discussions**: Ask questions in repository discussions
+- **Issues**: Report bugs at `https://github.com/DanielUlisses/switch_energy_statistics_estimation/issues`
 - **Documentation**: Full docs in `README.md` and `examples.md`
