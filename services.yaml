@@ -1,0 +1,133 @@
+reset_energy:
+  name: Reset Energy Data
+  description: Reset the current period of an energy sensor to zero
+  fields:
+    entity_id:
+      name: Entity
+      description: The energy sensor to reset
+      required: true
+      selector:
+        entity:
+          integration: switch_energy_statistics
+          domain: sensor
+          device_class: energy
+    period:
+      name: Period
+      description: Reset another period of the same load instead (defaults to the sensor's own period)
+      required: false
+      selector:
+        select:
+          options:
+            - daily
+            - weekly
+            - monthly
+            - lifetime
+
+set_energy:
+  name: Set Energy Value
+  description: Set the energy of the period (day, ISO week or month) containing a date
+  fields:
+    entity_id:
+      name: Entity
+      description: The energy sensor to modify
+      required: true
+      selector:
+        entity:
+          integration: switch_energy_statistics
+          domain: sensor
+          device_class: energy
+    energy:
+      name: Energy Value
+      description: Energy value in Wh
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 100000000
+          step: 0.1
+          mode: box
+          unit_of_measurement: Wh
+    date:
+      name: Date
+      description: A date inside the period to set (defaults to the current period; ignored for the lifetime sensor)
+      required: false
+      selector:
+        date:
+
+export_data:
+  name: Export Historical Data
+  description: Return a sensor's history and fire it as a switch_energy_statistics_data_export event
+  fields:
+    entity_id:
+      name: Entity
+      description: The energy sensor to export
+      required: true
+      selector:
+        entity:
+          integration: switch_energy_statistics
+          domain: sensor
+          device_class: energy
+    start_date:
+      name: Start Date
+      description: Only periods starting on or after this date (optional)
+      required: false
+      selector:
+        date:
+    end_date:
+      name: End Date
+      description: Only periods starting on or before this date (optional)
+      required: false
+      selector:
+        date:
+
+attach:
+  name: Attach Loads
+  description: Create an entry that estimates the consumption of one or more switched entities (one gang each)
+  fields:
+    entity_id:
+      name: Entities
+      description: Switch, light, fan or input_boolean entities, one per gang
+      required: true
+      selector:
+        entity:
+          multiple: true
+          domain:
+            - switch
+            - light
+            - fan
+            - input_boolean
+    power:
+      name: Watts per load
+      description: Power of one load, applied to every gang
+      required: true
+      selector:
+        number:
+          min: 0.1
+          max: 5000
+          step: 0.1
+          mode: box
+          unit_of_measurement: W
+    quantity:
+      name: Loads per gang
+      description: Number of identical loads each entity switches (for example 3 lamps)
+      required: false
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 100
+          step: 1
+          mode: box
+    name:
+      name: Name
+      description: Entry name (defaults to the first entity's name)
+      required: false
+      selector:
+        text:
+    brightness_scaling:
+      name: Scale by brightness
+      description: Scale the power of light entities by their brightness
+      required: false
+      default: false
+      selector:
+        boolean:

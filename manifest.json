@@ -1,0 +1,15 @@
+{
+  "domain": "switch_energy_statistics",
+  "name": "Switch Energy Statistics Estimation",
+  "codeowners": [
+    "@danielulisses"
+  ],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/DanielUlisses/switch_energy_statistics_estimation",
+  "integration_type": "device",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/DanielUlisses/switch_energy_statistics_estimation/issues",
+  "requirements": [],
+  "version": "2.2.0"
+}

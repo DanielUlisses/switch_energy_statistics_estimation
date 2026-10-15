@@ -1,0 +1,119 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Associar cargas",
+        "description": "Escolha as entidades switch, light, fan ou input_boolean a estimar, uma por tecla, na ordem das teclas. O nome padrão é o da primeira entidade.",
+        "data": {
+          "name": "Nome",
+          "entities": "Entidades acionadas"
+        }
+      },
+      "gang_config": {
+        "title": "Cargas por tecla",
+        "description": "{gangs}\n\nPara cada tecla informe os watts de uma carga e quantas cargas iguais ela aciona (por exemplo 3 lâmpadas de 5 W).",
+        "data": {
+          "gang_1_power": "Tecla 1 watts por carga",
+          "gang_1_quantity": "Tecla 1 número de cargas",
+          "gang_2_power": "Tecla 2 watts por carga",
+          "gang_2_quantity": "Tecla 2 número de cargas",
+          "gang_3_power": "Tecla 3 watts por carga",
+          "gang_3_quantity": "Tecla 3 número de cargas",
+          "gang_4_power": "Tecla 4 watts por carga",
+          "gang_4_quantity": "Tecla 4 número de cargas",
+          "gang_5_power": "Tecla 5 watts por carga",
+          "gang_5_quantity": "Tecla 5 número de cargas",
+          "gang_6_power": "Tecla 6 watts por carga",
+          "gang_6_quantity": "Tecla 6 número de cargas",
+          "gang_7_power": "Tecla 7 watts por carga",
+          "gang_7_quantity": "Tecla 7 número de cargas",
+          "gang_8_power": "Tecla 8 watts por carga",
+          "gang_8_quantity": "Tecla 8 número de cargas",
+          "gang_9_power": "Tecla 9 watts por carga",
+          "gang_9_quantity": "Tecla 9 número de cargas",
+          "gang_10_power": "Tecla 10 watts por carga",
+          "gang_10_quantity": "Tecla 10 número de cargas",
+          "gang_11_power": "Tecla 11 watts por carga",
+          "gang_11_quantity": "Tecla 11 número de cargas",
+          "gang_12_power": "Tecla 12 watts por carga",
+          "gang_12_quantity": "Tecla 12 número de cargas",
+          "gang_13_power": "Tecla 13 watts por carga",
+          "gang_13_quantity": "Tecla 13 número de cargas",
+          "gang_14_power": "Tecla 14 watts por carga",
+          "gang_14_quantity": "Tecla 14 número de cargas",
+          "gang_15_power": "Tecla 15 watts por carga",
+          "gang_15_quantity": "Tecla 15 número de cargas",
+          "gang_16_power": "Tecla 16 watts por carga",
+          "gang_16_quantity": "Tecla 16 número de cargas",
+          "brightness_scaling": "Ajustar a potência das luzes pelo brilho"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigurar",
+        "description": "Altere o nome ou adicione, troque ou remova teclas. Entidades mantidas preservam o histórico; sensores de teclas removidas são apagados.",
+        "data": {
+          "name": "Nome",
+          "entities": "Entidades acionadas"
+        }
+      }
+    },
+    "error": {
+      "no_entities": "Selecione ao menos uma entidade",
+      "too_many_entities": "No máximo 8 entidades (teclas) por entrada",
+      "duplicate_entity": "Cada entidade só pode ser escolhida uma vez",
+      "invalid_switch_entity": "Só entidades switch, light, fan e input_boolean são suportadas",
+      "entity_already_configured": "Uma destas entidades já está associada em outra entrada"
+    },
+    "abort": {
+      "reconfigure_successful": "Reconfigurado",
+      "no_entities": "Nenhuma entidade informada",
+      "too_many_entities": "No máximo 8 entidades por entrada",
+      "duplicate_entity": "Entidade repetida",
+      "invalid_switch_entity": "Domínio de entidade não suportado",
+      "entity_already_configured": "Entidade já associada em outra entrada"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Cargas",
+        "description": "{gangs}",
+        "data": {
+          "gang_1_power": "Tecla 1 watts por carga",
+          "gang_1_quantity": "Tecla 1 número de cargas",
+          "gang_2_power": "Tecla 2 watts por carga",
+          "gang_2_quantity": "Tecla 2 número de cargas",
+          "gang_3_power": "Tecla 3 watts por carga",
+          "gang_3_quantity": "Tecla 3 número de cargas",
+          "gang_4_power": "Tecla 4 watts por carga",
+          "gang_4_quantity": "Tecla 4 número de cargas",
+          "gang_5_power": "Tecla 5 watts por carga",
+          "gang_5_quantity": "Tecla 5 número de cargas",
+          "gang_6_power": "Tecla 6 watts por carga",
+          "gang_6_quantity": "Tecla 6 número de cargas",
+          "gang_7_power": "Tecla 7 watts por carga",
+          "gang_7_quantity": "Tecla 7 número de cargas",
+          "gang_8_power": "Tecla 8 watts por carga",
+          "gang_8_quantity": "Tecla 8 número de cargas",
+          "gang_9_power": "Tecla 9 watts por carga",
+          "gang_9_quantity": "Tecla 9 número de cargas",
+          "gang_10_power": "Tecla 10 watts por carga",
+          "gang_10_quantity": "Tecla 10 número de cargas",
+          "gang_11_power": "Tecla 11 watts por carga",
+          "gang_11_quantity": "Tecla 11 número de cargas",
+          "gang_12_power": "Tecla 12 watts por carga",
+          "gang_12_quantity": "Tecla 12 número de cargas",
+          "gang_13_power": "Tecla 13 watts por carga",
+          "gang_13_quantity": "Tecla 13 número de cargas",
+          "gang_14_power": "Tecla 14 watts por carga",
+          "gang_14_quantity": "Tecla 14 número de cargas",
+          "gang_15_power": "Tecla 15 watts por carga",
+          "gang_15_quantity": "Tecla 15 número de cargas",
+          "gang_16_power": "Tecla 16 watts por carga",
+          "gang_16_quantity": "Tecla 16 número de cargas",
+          "brightness_scaling": "Ajustar a potência das luzes pelo brilho"
+        }
+      }
+    }
+  }
+}

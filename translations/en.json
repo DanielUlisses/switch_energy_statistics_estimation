@@ -1,0 +1,119 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Attach loads",
+        "description": "Pick the switch, light, fan or input_boolean entities to estimate, one per gang, in gang order. The name defaults to the first entity's name.",
+        "data": {
+          "name": "Name",
+          "entities": "Switched entities"
+        }
+      },
+      "gang_config": {
+        "title": "Loads per gang",
+        "description": "{gangs}\n\nFor each gang set the watts of one load and how many identical loads it switches (for example 3 lamps of 5 W).",
+        "data": {
+          "gang_1_power": "Gang 1 watts per load",
+          "gang_1_quantity": "Gang 1 number of loads",
+          "gang_2_power": "Gang 2 watts per load",
+          "gang_2_quantity": "Gang 2 number of loads",
+          "gang_3_power": "Gang 3 watts per load",
+          "gang_3_quantity": "Gang 3 number of loads",
+          "gang_4_power": "Gang 4 watts per load",
+          "gang_4_quantity": "Gang 4 number of loads",
+          "gang_5_power": "Gang 5 watts per load",
+          "gang_5_quantity": "Gang 5 number of loads",
+          "gang_6_power": "Gang 6 watts per load",
+          "gang_6_quantity": "Gang 6 number of loads",
+          "gang_7_power": "Gang 7 watts per load",
+          "gang_7_quantity": "Gang 7 number of loads",
+          "gang_8_power": "Gang 8 watts per load",
+          "gang_8_quantity": "Gang 8 number of loads",
+          "gang_9_power": "Gang 9 watts per load",
+          "gang_9_quantity": "Gang 9 number of loads",
+          "gang_10_power": "Gang 10 watts per load",
+          "gang_10_quantity": "Gang 10 number of loads",
+          "gang_11_power": "Gang 11 watts per load",
+          "gang_11_quantity": "Gang 11 number of loads",
+          "gang_12_power": "Gang 12 watts per load",
+          "gang_12_quantity": "Gang 12 number of loads",
+          "gang_13_power": "Gang 13 watts per load",
+          "gang_13_quantity": "Gang 13 number of loads",
+          "gang_14_power": "Gang 14 watts per load",
+          "gang_14_quantity": "Gang 14 number of loads",
+          "gang_15_power": "Gang 15 watts per load",
+          "gang_15_quantity": "Gang 15 number of loads",
+          "gang_16_power": "Gang 16 watts per load",
+          "gang_16_quantity": "Gang 16 number of loads",
+          "brightness_scaling": "Scale light power by brightness"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure",
+        "description": "Change the name or add, replace or remove gangs. Kept entities keep their history; sensors of removed gangs are deleted.",
+        "data": {
+          "name": "Name",
+          "entities": "Switched entities"
+        }
+      }
+    },
+    "error": {
+      "no_entities": "Select at least one entity",
+      "too_many_entities": "At most 8 entities (gangs) per entry",
+      "duplicate_entity": "Each entity can be selected once",
+      "invalid_switch_entity": "Only switch, light, fan and input_boolean entities are supported",
+      "entity_already_configured": "One of these entities is already attached in another entry"
+    },
+    "abort": {
+      "reconfigure_successful": "Reconfigured",
+      "no_entities": "No entities given",
+      "too_many_entities": "At most 8 entities per entry",
+      "duplicate_entity": "Duplicate entity",
+      "invalid_switch_entity": "Unsupported entity domain",
+      "entity_already_configured": "Entity already attached in another entry"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Loads",
+        "description": "{gangs}",
+        "data": {
+          "gang_1_power": "Gang 1 watts per load",
+          "gang_1_quantity": "Gang 1 number of loads",
+          "gang_2_power": "Gang 2 watts per load",
+          "gang_2_quantity": "Gang 2 number of loads",
+          "gang_3_power": "Gang 3 watts per load",
+          "gang_3_quantity": "Gang 3 number of loads",
+          "gang_4_power": "Gang 4 watts per load",
+          "gang_4_quantity": "Gang 4 number of loads",
+          "gang_5_power": "Gang 5 watts per load",
+          "gang_5_quantity": "Gang 5 number of loads",
+          "gang_6_power": "Gang 6 watts per load",
+          "gang_6_quantity": "Gang 6 number of loads",
+          "gang_7_power": "Gang 7 watts per load",
+          "gang_7_quantity": "Gang 7 number of loads",
+          "gang_8_power": "Gang 8 watts per load",
+          "gang_8_quantity": "Gang 8 number of loads",
+          "gang_9_power": "Gang 9 watts per load",
+          "gang_9_quantity": "Gang 9 number of loads",
+          "gang_10_power": "Gang 10 watts per load",
+          "gang_10_quantity": "Gang 10 number of loads",
+          "gang_11_power": "Gang 11 watts per load",
+          "gang_11_quantity": "Gang 11 number of loads",
+          "gang_12_power": "Gang 12 watts per load",
+          "gang_12_quantity": "Gang 12 number of loads",
+          "gang_13_power": "Gang 13 watts per load",
+          "gang_13_quantity": "Gang 13 number of loads",
+          "gang_14_power": "Gang 14 watts per load",
+          "gang_14_quantity": "Gang 14 number of loads",
+          "gang_15_power": "Gang 15 watts per load",
+          "gang_15_quantity": "Gang 15 number of loads",
+          "gang_16_power": "Gang 16 watts per load",
+          "gang_16_quantity": "Gang 16 number of loads",
+          "brightness_scaling": "Scale light power by brightness"
+        }
+      }
+    }
+  }
+}
